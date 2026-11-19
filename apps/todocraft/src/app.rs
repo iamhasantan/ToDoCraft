@@ -440,7 +440,7 @@ impl ToDoCraftApp {
             );
             let add = egui::Button::new(
                 RichText::new("+  Add")
-                    .color(egui::Color32::WHITE)
+                    .color(self.tokens.on_accent)
                     .strong(),
             )
             .fill(self.tokens.accent)
