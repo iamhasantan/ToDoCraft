@@ -119,7 +119,11 @@ impl Task {
     pub fn add_step(&mut self, text: &str) -> Result<Uuid, DomainError> {
         let title = nonempty_title(text)?;
         let id = Uuid::new_v4();
-        self.steps.push(Step { id, title, completed: false });
+        self.steps.push(Step {
+            id,
+            title,
+            completed: false,
+        });
         Ok(id)
     }
 }
@@ -157,7 +161,10 @@ pub enum DomainError {
 impl Default for Workspace {
     fn default() -> Self {
         Self {
-            lists: vec![TaskList { id: Uuid::new_v4(), name: "Tasks".to_owned() }],
+            lists: vec![TaskList {
+                id: Uuid::new_v4(),
+                name: "Tasks".to_owned(),
+            }],
             tasks: Vec::new(),
         }
     }
@@ -199,7 +206,10 @@ impl Workspace {
     }
 
     pub fn task_mut(&mut self, id: Uuid) -> Result<&mut Task, DomainError> {
-        self.tasks.iter_mut().find(|task| task.id == id).ok_or(DomainError::TaskMissing)
+        self.tasks
+            .iter_mut()
+            .find(|task| task.id == id)
+            .ok_or(DomainError::TaskMissing)
     }
 
     pub fn remove_task(&mut self, id: Uuid) -> Result<(), DomainError> {
@@ -230,7 +240,10 @@ impl Workspace {
             return Ok(());
         }
         let due = task.due_date.unwrap_or(today);
-        let next = task.repeat.next_due(due, today).ok_or(DomainError::InvalidDate)?;
+        let next = task
+            .repeat
+            .next_due(due, today)
+            .ok_or(DomainError::InvalidDate)?;
         let mut successor = task.clone();
         successor.id = Uuid::new_v4();
         successor.created_at = Utc::now();
@@ -267,7 +280,12 @@ impl Workspace {
             })
             .collect();
         result.sort_by_key(|task| {
-            (task.is_completed(), !task.important, task.due_date.unwrap_or(NaiveDate::MAX), task.created_at)
+            (
+                task.is_completed(),
+                !task.important,
+                task.due_date.unwrap_or(NaiveDate::MAX),
+                task.created_at,
+            )
         });
         result
     }
@@ -296,20 +314,35 @@ mod tests {
     fn my_day_does_not_carry_to_tomorrow() {
         let today = date(2026, 11, 19);
         let mut ws = Workspace::default();
-        let Some(inbox) = ws.inbox_id() else { panic!("default list missing") };
-        let Ok(id) = ws.add_task(inbox, "Review") else { panic!("task rejected") };
-        let Ok(task) = ws.task_mut(id) else { panic!("task not found") };
+        let Some(inbox) = ws.inbox_id() else {
+            panic!("default list missing")
+        };
+        let Ok(id) = ws.add_task(inbox, "Review") else {
+            panic!("task rejected")
+        };
+        let Ok(task) = ws.task_mut(id) else {
+            panic!("task not found")
+        };
         task.my_day = Some(today);
         assert_eq!(ws.visible_tasks(&View::MyDay, today, "").len(), 1);
-        assert!(ws.visible_tasks(&View::MyDay, date(2026, 11, 20), "").is_empty());
+        assert!(
+            ws.visible_tasks(&View::MyDay, date(2026, 11, 20), "")
+                .is_empty()
+        );
     }
 
     #[test]
     fn recurrence_is_not_duplicated_on_second_completion_toggle() {
         let mut ws = Workspace::default();
-        let Some(inbox) = ws.inbox_id() else { panic!("default list missing") };
-        let Ok(id) = ws.add_task(inbox, "Weekly") else { panic!("task rejected") };
-        let Ok(task) = ws.task_mut(id) else { panic!("task not found") };
+        let Some(inbox) = ws.inbox_id() else {
+            panic!("default list missing")
+        };
+        let Ok(id) = ws.add_task(inbox, "Weekly") else {
+            panic!("task rejected")
+        };
+        let Ok(task) = ws.task_mut(id) else {
+            panic!("task not found")
+        };
         task.repeat = Repeat::Weekly;
         task.due_date = Some(date(2026, 11, 19));
         assert!(ws.toggle_completed(id, date(2026, 11, 19)).is_ok());
