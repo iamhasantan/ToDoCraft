@@ -1,0 +1,21 @@
+[package]
+name = "todocraft"
+version.workspace = true
+edition.workspace = true
+rust-version.workspace = true
+license.workspace = true
+repository.workspace = true
+
+[lints]
+workspace = true
+
+[dependencies]
+todocraft-core = { path = "../../crates/core" }
+todocraft-storage = { path = "../../crates/storage" }
+chrono.workspace = true
+directories.workspace = true
+eframe.workspace = true
+egui.workspace = true
+uuid.workspace = true
+env_logger.workspace = true
+log.workspace = true
