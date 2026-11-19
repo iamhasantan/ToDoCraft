@@ -225,22 +225,21 @@ impl ToDoCraftApp {
             .collect();
         for (id, name) in lists {
             let selected = self.view == View::List(id);
-            let button = egui::Button::new(
-                RichText::new(format!("☷     {name}"))
-                    .size(14.0)
-                    .color(if selected {
+            let button =
+                egui::Button::new(RichText::new(format!("☷     {name}")).size(14.0).color(
+                    if selected {
                         self.tokens.accent
                     } else {
                         self.tokens.text
-                    }),
-            )
-            .fill(if selected {
-                self.tokens.accent_tint
-            } else {
-                self.tokens.sidebar_surface
-            })
-            .stroke(egui::Stroke::NONE)
-            .corner_radius(8);
+                    },
+                ))
+                .fill(if selected {
+                    self.tokens.accent_tint
+                } else {
+                    self.tokens.sidebar_surface
+                })
+                .stroke(egui::Stroke::NONE)
+                .corner_radius(8);
             if ui.add_sized([ui.available_width(), 36.0], button).clicked() {
                 self.view = View::List(id);
             }
@@ -291,7 +290,10 @@ impl ToDoCraftApp {
             ui.heading(RichText::new(self.view_name()).size(25.0).strong());
         }
         ui.add_space(14.0);
-        let count = self.workspace.visible_tasks(&self.view, today, &self.search).len();
+        let count = self
+            .workspace
+            .visible_tasks(&self.view, today, &self.search)
+            .len();
         let noun = if count == 1 { "task" } else { "tasks" };
         ui.label(
             RichText::new(format!("{count} {noun}"))
@@ -321,11 +323,7 @@ impl ToDoCraftApp {
                 if rows.is_empty() {
                     ui.add_space(56.0);
                     ui.vertical_centered(|ui| {
-                        ui.label(
-                            RichText::new("✓")
-                                .size(28.0)
-                                .color(self.tokens.accent),
-                        );
+                        ui.label(RichText::new("✓").size(28.0).color(self.tokens.accent));
                         ui.add_space(8.0);
                         ui.label(RichText::new("You're all caught up").size(16.0).strong());
                         ui.label(
@@ -388,8 +386,7 @@ impl ToDoCraftApp {
                                 if ui
                                     .add_sized(
                                         [title_width, 32.0],
-                                        egui::Button::new(text)
-                                            .frame(false),
+                                        egui::Button::new(text).frame(false),
                                     )
                                     .clicked()
                                 {
@@ -645,11 +642,7 @@ impl eframe::App for ToDoCraftApp {
             )
             .show(root, |ui| {
                 ui.horizontal(|ui| {
-                    ui.label(
-                        RichText::new("◉")
-                            .color(self.tokens.accent)
-                            .size(20.0),
-                    );
+                    ui.label(RichText::new("◉").color(self.tokens.accent).size(20.0));
                     ui.label(
                         RichText::new("ToDoCraft")
                             .strong()
