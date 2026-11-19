@@ -87,18 +87,29 @@ pub fn apply(context: &egui::Context, mode: ThemeMode) -> Tokens {
     visuals.selection.stroke = Stroke::new(1.0, tokens.accent);
     context.set_visuals(visuals);
 
-    context.style_mut_of(match mode {
-        ThemeMode::Light => egui::Theme::Light,
-        ThemeMode::Dark => egui::Theme::Dark,
-    }, |style| {
-        // A compact 4-point rhythm, inspired by Fluent's layout and type ramp.
-        style.spacing.item_spacing = egui::vec2(8.0, 8.0);
-        style.spacing.button_padding = egui::vec2(10.0, 6.0);
-        style.text_styles.insert(TextStyle::Body, FontId::proportional(14.0));
-        style.text_styles.insert(TextStyle::Button, FontId::proportional(14.0));
-        style.text_styles.insert(TextStyle::Small, FontId::proportional(12.0));
-        style.text_styles.insert(TextStyle::Heading, FontId::proportional(24.0));
-    });
+    context.style_mut_of(
+        match mode {
+            ThemeMode::Light => egui::Theme::Light,
+            ThemeMode::Dark => egui::Theme::Dark,
+        },
+        |style| {
+            // A compact 4-point rhythm, inspired by Fluent's layout and type ramp.
+            style.spacing.item_spacing = egui::vec2(8.0, 8.0);
+            style.spacing.button_padding = egui::vec2(10.0, 6.0);
+            style
+                .text_styles
+                .insert(TextStyle::Body, FontId::proportional(14.0));
+            style
+                .text_styles
+                .insert(TextStyle::Button, FontId::proportional(14.0));
+            style
+                .text_styles
+                .insert(TextStyle::Small, FontId::proportional(12.0));
+            style
+                .text_styles
+                .insert(TextStyle::Heading, FontId::proportional(24.0));
+        },
+    );
     tokens
 }
 
