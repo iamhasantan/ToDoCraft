@@ -4,7 +4,7 @@
 
 ## Current stage: pre-alpha
 
-The first implementation provides a native `egui` desktop UI, a pure Rust task engine, and local SQLite persistence. It is not yet a complete Microsoft To Do replacement. See [feature parity](docs/parity.md) and [known gaps](docs/gaps.md).
+The first implementation provides a Microsoft 365-inspired native `egui` desktop UI, a pure Rust task engine, and local SQLite persistence. It is not yet a complete Microsoft To Do replacement. See [feature parity](docs/parity.md) and [known gaps](docs/gaps.md).
 
 ### Build
 
@@ -24,7 +24,7 @@ A Rust-only native desktop build is the first target. Microsoft Graph sync, shar
 - **Engine first**. Tasks and recurrence live in `todocraft-core`, persistence in `todocraft-storage`, desktop UI in `todocraft`.
 - **Rust only**. No Electron, Tauri, webviews or JavaScript.
 - **Never lose data silently**. Storage errors appear in-app. SQLite saves are transactional.
-- **Theme by meaning**. The UI uses semantic theme tokens, never fixed colours in workflow logic.
+- **Theme by meaning**. The UI uses original Fluent-inspired semantic light/dark theme tokens, never fixed colours in workflow logic.
 - **Measure parity**. Each feature has a verified status in `docs/parity.md`. Missing features remain visible.
 - **PR-first development**. Future changes are proposed on branches, tested and reviewed.
 
