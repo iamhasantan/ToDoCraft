@@ -1,0 +1,30 @@
+name: Windows test build
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build-windows:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+      - name: Install stable Rust
+        uses: dtolnay/rust-toolchain@stable
+      - name: Compile Windows desktop app
+        run: cargo build --release --locked -p todocraft
+      - name: Write SHA256 checksum
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash -Path "target/release/todocraft.exe" -Algorithm SHA256).Hash
+          "${hash}  todocraft.exe" | Out-File -FilePath "target/release/SHA256SUMS.txt" -Encoding utf8
+      - name: Upload Windows test application
+        uses: actions/upload-artifact@v4
+        with:
+          name: ToDoCraft-Windows-x64-prealpha
+          path: |
+            target/release/todocraft.exe
+            target/release/SHA256SUMS.txt
+          if-no-files-found: error
+          retention-days: 14
