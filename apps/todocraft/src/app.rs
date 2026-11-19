@@ -4,7 +4,7 @@ use todocraft_core::{Repeat, View, Workspace};
 use todocraft_storage::Store;
 use uuid::Uuid;
 
-use crate::theme::{self, Tokens};
+use crate::theme::{self, ThemeMode, Tokens};
 
 pub struct ToDoCraftApp {
     store: Option<Store>,
@@ -22,11 +22,13 @@ pub struct ToDoCraftApp {
     confirm_delete: bool,
     status: Option<String>,
     tokens: Tokens,
+    theme_mode: ThemeMode,
 }
 
 impl ToDoCraftApp {
     pub fn new(cc: &eframe::CreationContext<'_>, store: Result<Store, String>) -> Self {
-        let tokens = theme::apply(&cc.egui_ctx);
+        let theme_mode = ThemeMode::Light;
+        let tokens = theme::apply(&cc.egui_ctx, theme_mode);
         let (store, workspace, status) = match store {
             Ok(storage) => match storage.load() {
                 Ok(workspace) => (Some(storage), workspace, None),
@@ -61,6 +63,7 @@ impl ToDoCraftApp {
             confirm_delete: false,
             status,
             tokens,
+            theme_mode,
         }
     }
 
@@ -168,33 +171,49 @@ impl ToDoCraftApp {
     }
 
     fn side_navigation(&mut self, ui: &mut egui::Ui) {
-        ui.heading(RichText::new("ToDoCraft").color(self.tokens.accent));
+        ui.add_space(10.0);
         ui.label(
-            RichText::new("Your day, carefully crafted")
-                .color(self.tokens.muted_text)
-                .small(),
+            RichText::new("Workspace")
+                .size(12.0)
+                .color(self.tokens.muted_text),
         );
-        ui.add_space(18.0);
+        ui.add_space(14.0);
 
         for (view, icon, label) in [
             (View::MyDay, "☀", "My Day"),
-            (View::Important, "★", "Important"),
+            (View::Important, "☆", "Important"),
             (View::Planned, "▦", "Planned"),
-            (View::All, "≡", "All"),
+            (View::All, "☷", "All tasks"),
             (View::Completed, "✓", "Completed"),
         ] {
-            if ui
-                .selectable_label(self.view == view, format!("{icon}  {label}"))
-                .clicked()
-            {
+            let selected = self.view == view;
+            let button = egui::Button::new(
+                RichText::new(format!("{icon}     {label}"))
+                    .color(if selected {
+                        self.tokens.accent
+                    } else {
+                        self.tokens.text
+                    })
+                    .size(14.0)
+                    .strong(),
+            )
+            .fill(if selected {
+                self.tokens.accent_tint
+            } else {
+                self.tokens.sidebar_surface
+            })
+            .stroke(egui::Stroke::NONE)
+            .corner_radius(8);
+            if ui.add_sized([ui.available_width(), 38.0], button).clicked() {
                 self.view = view;
             }
         }
-        ui.add_space(12.0);
-        ui.separator();
+
+        ui.add_space(20.0);
         ui.label(
-            RichText::new("MY LISTS")
-                .small()
+            RichText::new("Your lists")
+                .size(12.0)
+                .strong()
                 .color(self.tokens.muted_text),
         );
         ui.add_space(8.0);
@@ -202,13 +221,27 @@ impl ToDoCraftApp {
             .workspace
             .lists
             .iter()
-            .map(|l| (l.id, l.name.clone()))
+            .map(|list| (list.id, list.name.clone()))
             .collect();
         for (id, name) in lists {
-            if ui
-                .selectable_label(self.view == View::List(id), format!("☷  {name}"))
-                .clicked()
-            {
+            let selected = self.view == View::List(id);
+            let button = egui::Button::new(
+                RichText::new(format!("☷     {name}"))
+                    .size(14.0)
+                    .color(if selected {
+                        self.tokens.accent
+                    } else {
+                        self.tokens.text
+                    }),
+            )
+            .fill(if selected {
+                self.tokens.accent_tint
+            } else {
+                self.tokens.sidebar_surface
+            })
+            .stroke(egui::Stroke::NONE)
+            .corner_radius(8);
+            if ui.add_sized([ui.available_width(), 36.0], button).clicked() {
                 self.view = View::List(id);
             }
         }
@@ -217,7 +250,7 @@ impl ToDoCraftApp {
             let response = ui.add(
                 egui::TextEdit::singleline(&mut self.new_list)
                     .hint_text("New list")
-                    .desired_width(ui.available_width() - 42.0),
+                    .desired_width((ui.available_width() - 45.0).max(60.0)),
             );
             if ui.button("+").on_hover_text("Create list").clicked()
                 || (response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)))
@@ -235,28 +268,41 @@ impl ToDoCraftApp {
     }
 
     fn central_view(&mut self, ui: &mut egui::Ui) {
-        ui.add_space(12.0);
-        ui.heading(self.view_name());
+        ui.add_space(10.0);
+        let today = Self::today();
         if matches!(self.view, View::MyDay) {
-            ui.label(
-                RichText::new(Self::today().format("%A, %d %B %Y").to_string())
-                    .color(self.tokens.muted_text),
-            );
+            egui::Frame::new()
+                .fill(self.tokens.accent_tint)
+                .corner_radius(10)
+                .inner_margin(egui::Margin::symmetric(18, 14))
+                .show(ui, |ui| {
+                    ui.heading(
+                        RichText::new("☀  My Day")
+                            .size(25.0)
+                            .strong()
+                            .color(self.tokens.accent),
+                    );
+                    ui.label(
+                        RichText::new(today.format("%A, %d %B").to_string())
+                            .color(self.tokens.muted_text),
+                    );
+                });
+        } else {
+            ui.heading(RichText::new(self.view_name()).size(25.0).strong());
         }
         ui.add_space(14.0);
-        let count = self
-            .workspace
-            .visible_tasks(&self.view, Self::today(), &self.search)
-            .len();
+        let count = self.workspace.visible_tasks(&self.view, today, &self.search).len();
+        let noun = if count == 1 { "task" } else { "tasks" };
         ui.label(
-            RichText::new(format!("{count} task(s)"))
-                .small()
+            RichText::new(format!("{count} {noun}"))
+                .size(12.0)
                 .color(self.tokens.muted_text),
         );
-        ui.separator();
+        ui.add_space(6.0);
+
         let rows: Vec<_> = self
             .workspace
-            .visible_tasks(&self.view, Self::today(), &self.search)
+            .visible_tasks(&self.view, today, &self.search)
             .into_iter()
             .map(|task| {
                 (
@@ -272,61 +318,134 @@ impl ToDoCraftApp {
         egui::ScrollArea::vertical()
             .auto_shrink([false, false])
             .show(ui, |ui| {
-                for (id, title, completed, important, due) in rows {
-                    ui.horizontal(|ui| {
-                        if ui
-                            .button(if completed { "●" } else { "○" })
-                            .on_hover_text("Toggle completed")
-                            .clicked()
-                        {
-                            match self.workspace.toggle_completed(id, Self::today()) {
-                                Ok(()) => self.persist(),
-                                Err(err) => self.status = Some(err.to_string()),
-                            }
-                        }
-                        let text = if completed {
-                            RichText::new(title)
-                                .strikethrough()
-                                .color(self.tokens.muted_text)
-                        } else {
-                            RichText::new(title)
-                        };
-                        if ui
-                            .selectable_label(self.selected == Some(id), text)
-                            .clicked()
-                        {
-                            self.select_task(id);
-                        }
-                        if let Some(date) = due {
-                            ui.label(
-                                RichText::new(date.format("%d %b").to_string())
-                                    .small()
-                                    .color(self.tokens.muted_text),
-                            );
-                        }
-                        if ui
-                            .button(if important { "★" } else { "☆" })
-                            .on_hover_text("Toggle important")
-                            .clicked()
-                            && let Ok(task) = self.workspace.task_mut(id)
-                        {
-                            task.important = !task.important;
-                            self.persist();
-                        }
+                if rows.is_empty() {
+                    ui.add_space(56.0);
+                    ui.vertical_centered(|ui| {
+                        ui.label(
+                            RichText::new("✓")
+                                .size(28.0)
+                                .color(self.tokens.accent),
+                        );
+                        ui.add_space(8.0);
+                        ui.label(RichText::new("You're all caught up").size(16.0).strong());
+                        ui.label(
+                            RichText::new("Add a task below when something comes to mind.")
+                                .color(self.tokens.muted_text),
+                        );
                     });
-                    ui.separator();
+                }
+                for (id, title, completed, important, due) in rows {
+                    let selected = self.selected == Some(id);
+                    let row_width = (ui.available_width() - 24.0).max(240.0);
+                    egui::Frame::new()
+                        .fill(if selected {
+                            self.tokens.accent_tint
+                        } else {
+                            self.tokens.surface
+                        })
+                        .stroke(egui::Stroke::new(
+                            1.0,
+                            if selected {
+                                self.tokens.accent
+                            } else {
+                                self.tokens.border
+                            },
+                        ))
+                        .corner_radius(8)
+                        .inner_margin(egui::Margin::symmetric(12, 6))
+                        .show(ui, |ui| {
+                            ui.set_min_width(row_width);
+                            ui.horizontal(|ui| {
+                                let complete_label = if completed { "✓" } else { "○" };
+                                if ui
+                                    .add_sized(
+                                        [30.0, 32.0],
+                                        egui::Button::new(
+                                            RichText::new(complete_label)
+                                                .size(20.0)
+                                                .color(self.tokens.accent),
+                                        )
+                                        .frame(false),
+                                    )
+                                    .on_hover_text("Toggle completed")
+                                    .clicked()
+                                {
+                                    match self.workspace.toggle_completed(id, today) {
+                                        Ok(()) => self.persist(),
+                                        Err(err) => self.status = Some(err.to_string()),
+                                    }
+                                }
+
+                                let text = if completed {
+                                    RichText::new(title)
+                                        .size(14.0)
+                                        .strikethrough()
+                                        .color(self.tokens.muted_text)
+                                } else {
+                                    RichText::new(title).size(14.0).color(self.tokens.text)
+                                };
+                                let title_width = (ui.available_width() - 117.0).max(90.0);
+                                if ui
+                                    .add_sized(
+                                        [title_width, 32.0],
+                                        egui::Button::new(text)
+                                            .frame(false),
+                                    )
+                                    .clicked()
+                                {
+                                    self.select_task(id);
+                                }
+                                if let Some(date) = due {
+                                    ui.label(
+                                        RichText::new(date.format("%d %b").to_string())
+                                            .size(12.0)
+                                            .color(self.tokens.muted_text),
+                                    );
+                                }
+                                if ui
+                                    .add_sized(
+                                        [28.0, 30.0],
+                                        egui::Button::new(
+                                            RichText::new(if important { "★" } else { "☆" })
+                                                .size(19.0)
+                                                .color(if important {
+                                                    self.tokens.important
+                                                } else {
+                                                    self.tokens.muted_text
+                                                }),
+                                        )
+                                        .frame(false),
+                                    )
+                                    .on_hover_text("Toggle important")
+                                    .clicked()
+                                    && let Ok(task) = self.workspace.task_mut(id)
+                                {
+                                    task.important = !task.important;
+                                    self.persist();
+                                }
+                            });
+                        });
+                    ui.add_space(5.0);
                 }
             });
     }
 
     fn add_task_bar(&mut self, ui: &mut egui::Ui) {
         ui.horizontal(|ui| {
+            ui.add_space(8.0);
             let response = ui.add(
                 egui::TextEdit::singleline(&mut self.new_task)
                     .hint_text("Add a task")
-                    .desired_width(ui.available_width() - 85.0),
+                    .desired_width((ui.available_width() - 106.0).max(100.0)),
             );
-            if ui.button("+ Add").clicked()
+            let add = egui::Button::new(
+                RichText::new("+  Add")
+                    .color(egui::Color32::WHITE)
+                    .strong(),
+            )
+            .fill(self.tokens.accent)
+            .corner_radius(7);
+            if ui.add_sized([82.0, 34.0], add).clicked()
                 || (response.lost_focus() && ui.input(|i| i.key_pressed(egui::Key::Enter)))
             {
                 self.add_task();
@@ -511,58 +630,90 @@ impl eframe::App for ToDoCraftApp {
                 if let Some(message) = &self.status {
                     ui.colored_label(self.tokens.important, message);
                 }
-                ui.label("No tasks have been loaded or overwritten. Resolve the storage problem and relaunch.");
+                ui.label(
+                    "No tasks have been loaded or overwritten. Resolve the storage problem and relaunch.",
+                );
             });
             return;
         }
-        egui::Panel::top("toolbar").show(root, |ui| {
-            ui.horizontal(|ui| {
-                ui.label(RichText::new("✓").color(self.tokens.accent).heading());
-                ui.label(RichText::new("ToDoCraft").strong());
-                ui.separator();
-                ui.add(
-                    egui::TextEdit::singleline(&mut self.search)
-                        .hint_text("Search titles and notes")
-                        .desired_width(320.0),
-                );
-            });
-        });
-        egui::Panel::left("navigation")
-            .default_size(215.0)
-            .min_size(175.0)
+        egui::Panel::top("toolbar")
             .frame(
-                egui::Frame::default()
+                egui::Frame::new()
+                    .fill(self.tokens.surface)
+                    .inner_margin(egui::Margin::symmetric(18, 10))
+                    .stroke(egui::Stroke::new(1.0, self.tokens.border)),
+            )
+            .show(root, |ui| {
+                ui.horizontal(|ui| {
+                    ui.label(
+                        RichText::new("◉")
+                            .color(self.tokens.accent)
+                            .size(20.0),
+                    );
+                    ui.label(
+                        RichText::new("ToDoCraft")
+                            .strong()
+                            .size(17.0)
+                            .color(self.tokens.text),
+                    );
+                    ui.add_space(24.0);
+                    ui.add(
+                        egui::TextEdit::singleline(&mut self.search)
+                            .hint_text("⌕  Search tasks")
+                            .desired_width(300.0),
+                    );
+                    ui.with_layout(egui::Layout::right_to_left(egui::Align::Center), |ui| {
+                        if ui.button(self.theme_mode.switch_label()).clicked() {
+                            self.theme_mode = self.theme_mode.toggle();
+                            self.tokens = theme::apply(ui.ctx(), self.theme_mode);
+                        }
+                    });
+                });
+            });
+        egui::Panel::left("navigation")
+            .default_size(224.0)
+            .min_size(180.0)
+            .frame(
+                egui::Frame::new()
                     .fill(self.tokens.sidebar_surface)
-                    .inner_margin(egui::Margin::same(14)),
+                    .inner_margin(egui::Margin::symmetric(14, 10)),
             )
             .show(root, |ui| self.side_navigation(ui));
         if self.selected.is_some() {
             egui::Panel::right("inspector")
-                .default_size(300.0)
-                .min_size(250.0)
+                .default_size(310.0)
+                .min_size(260.0)
                 .resizable(true)
+                .frame(
+                    egui::Frame::new()
+                        .fill(self.tokens.surface)
+                        .inner_margin(egui::Margin::symmetric(16, 16)),
+                )
                 .show(root, |ui| {
                     egui::ScrollArea::vertical().show(ui, |ui| self.inspector(ui));
                 });
         }
-        egui::Panel::bottom("composer").show(root, |ui| {
-            ui.add_space(6.0);
-            self.add_task_bar(ui);
-            ui.add_space(6.0);
-        });
-        egui::CentralPanel::default().show(root, |ui| {
-            if let Some(message) = &self.status {
-                ui.colored_label(self.tokens.important, message);
-                ui.separator();
-            }
-            self.central_view(ui);
-            // A themed border keeps the empty task space visually anchored.
-            ui.painter().hline(
-                ui.min_rect().x_range(),
-                ui.min_rect().bottom(),
-                egui::Stroke::new(0.5, self.tokens.border),
-            );
-        });
+        egui::Panel::bottom("composer")
+            .frame(
+                egui::Frame::new()
+                    .fill(self.tokens.surface)
+                    .stroke(egui::Stroke::new(1.0, self.tokens.border))
+                    .inner_margin(egui::Margin::symmetric(18, 10)),
+            )
+            .show(root, |ui| self.add_task_bar(ui));
+        egui::CentralPanel::default()
+            .frame(
+                egui::Frame::new()
+                    .fill(self.tokens.background)
+                    .inner_margin(egui::Margin::symmetric(20, 16)),
+            )
+            .show(root, |ui| {
+                if let Some(message) = &self.status {
+                    ui.colored_label(self.tokens.important, message);
+                    ui.add_space(8.0);
+                }
+                self.central_view(ui);
+            });
     }
 }
 
