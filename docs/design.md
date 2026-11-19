@@ -25,3 +25,23 @@ Before building reusable components, check `storytold/craft-libs`, particularly 
 ## Asset policy
 
 All glyphs in this initial UI are ordinary Unicode symbols painted by system/default egui fonts. No Microsoft or Storytold icons, brand marks, custom fonts or media files are copied.
+
+## Microsoft 365-inspired visual direction
+
+The visual language borrows broad **Fluent 2** principles, not Microsoft product identity:
+
+- **Focused, with a little flair**: a calm neutral workspace, soft rounded task surfaces and just one small tinted My Day header.
+- **Colour discipline**: original ToDoCraft blue used for selection, navigation and the primary add action. Important tasks use an amber semantic indicator, never decorative yellow.
+- **Light first, dark supported**: contrast-aware semantic tokens and a clear mode switch, no branded images or Microsoft marks.
+- **Typography**: 12/14/17/25 point hierarchy in a native proportional font, rather than copying or bundling Segoe fonts.
+- **Rhythm**: Fluent-inspired 4-point spacing, readable 36 to 38 point navigation controls, minimal separators and generous white space.
+- **No ribbon or toolbar sprawl**: the main work is still task completion; controls stay in the sidebar, task rows, bottom quick-add and optional details pane.
+- **Original presentation**: independent app name, Unicode symbols and egui-drawn controls. Do not copy any Fluent icon assets, branded artwork or Microsoft To Do screenshots.
+
+Public design references: [Fluent colour](https://fluent2.microsoft.design/color), [typography](https://fluent2.microsoft.design/typography) and [layout](https://fluent2.microsoft.design/layout).
+
+### Visual acceptance
+
+- Both light and dark mode must be tested with a selected list, populated tasks, completed tasks, important tasks, an open detail inspector and empty states.
+- The theme switch must not alter the domain model or persisted data.
+- Small viewports, keyboard focus, high-DPI scaling and contrast need real GUI inspection before visual parity is claimed.
