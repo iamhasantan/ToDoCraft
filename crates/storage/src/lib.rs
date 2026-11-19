@@ -55,7 +55,9 @@ impl Store {
         let mut lists = Vec::new();
         let mut tasks = Vec::new();
         {
-            let mut statement = self.connection.prepare("SELECT payload FROM lists ORDER BY rowid")?;
+            let mut statement = self
+                .connection
+                .prepare("SELECT payload FROM lists ORDER BY rowid")?;
             let mut rows = statement.query([])?;
             while let Some(row) = rows.next()? {
                 let payload: String = row.get(0)?;
@@ -63,7 +65,9 @@ impl Store {
             }
         }
         {
-            let mut statement = self.connection.prepare("SELECT payload FROM tasks ORDER BY rowid")?;
+            let mut statement = self
+                .connection
+                .prepare("SELECT payload FROM tasks ORDER BY rowid")?;
             let mut rows = statement.query([])?;
             while let Some(row) = rows.next()? {
                 let payload: String = row.get(0)?;
@@ -73,33 +77,45 @@ impl Store {
         if lists.is_empty() && tasks.is_empty() {
             return Ok(Workspace::default());
         }
-        if lists.is_empty() || tasks.iter().any(|task| !lists.iter().any(|list| list.id == task.list_id)) {
+        if lists.is_empty()
+            || tasks
+                .iter()
+                .any(|task| !lists.iter().any(|list| list.id == task.list_id))
+        {
             return Err(StoreError::MissingList);
         }
         Ok(Workspace { lists, tasks })
     }
 
     pub fn save(&mut self, workspace: &Workspace) -> Result<(), StoreError> {
-        if workspace.tasks.iter().any(|task| !workspace.lists.iter().any(|list| list.id == task.list_id)) {
+        if workspace
+            .tasks
+            .iter()
+            .any(|task| !workspace.lists.iter().any(|list| list.id == task.list_id))
+        {
             return Err(StoreError::MissingList);
         }
         let transaction = self.connection.transaction()?;
         transaction.execute("DELETE FROM tasks", [])?;
         transaction.execute("DELETE FROM lists", [])?;
         {
-            let mut statement = transaction.prepare("INSERT INTO lists (id, payload) VALUES (?1, ?2)")?;
+            let mut statement =
+                transaction.prepare("INSERT INTO lists (id, payload) VALUES (?1, ?2)")?;
             for list in &workspace.lists {
                 let payload = serde_json::to_string(list)?;
                 statement.execute(params![list.id.to_string(), payload])?;
             }
         }
         {
-            let mut statement = transaction.prepare(
-                "INSERT INTO tasks (id, list_id, payload) VALUES (?1, ?2, ?3)"
-            )?;
+            let mut statement = transaction
+                .prepare("INSERT INTO tasks (id, list_id, payload) VALUES (?1, ?2, ?3)")?;
             for task in &workspace.tasks {
                 let payload = serde_json::to_string(task)?;
-                statement.execute(params![task.id.to_string(), task.list_id.to_string(), payload])?;
+                statement.execute(params![
+                    task.id.to_string(),
+                    task.list_id.to_string(),
+                    payload
+                ])?;
             }
         }
         transaction.commit()?;
