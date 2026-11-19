@@ -135,15 +135,15 @@ impl ToDoCraftApp {
         };
         match self.workspace.add_task(list_id, &self.new_task) {
             Ok(id) => {
-                if matches!(self.view, View::MyDay) {
-                    if let Ok(task) = self.workspace.task_mut(id) {
-                        task.my_day = Some(Self::today());
-                    }
+                if matches!(self.view, View::MyDay)
+                    && let Ok(task) = self.workspace.task_mut(id)
+                {
+                    task.my_day = Some(Self::today());
                 }
-                if matches!(self.view, View::Planned) {
-                    if let Ok(task) = self.workspace.task_mut(id) {
-                        task.due_date = Some(Self::today());
-                    }
+                if matches!(self.view, View::Planned)
+                    && let Ok(task) = self.workspace.task_mut(id)
+                {
+                    task.due_date = Some(Self::today());
                 }
                 self.new_task.clear();
                 self.persist();
@@ -308,11 +308,10 @@ impl ToDoCraftApp {
                             .button(if important { "★" } else { "☆" })
                             .on_hover_text("Toggle important")
                             .clicked()
+                            && let Ok(task) = self.workspace.task_mut(id)
                         {
-                            if let Ok(task) = self.workspace.task_mut(id) {
-                                task.important = !task.important;
-                                self.persist();
-                            }
+                            task.important = !task.important;
+                            self.persist();
                         }
                     });
                     ui.separator();
@@ -372,10 +371,10 @@ impl ToDoCraftApp {
         ui.label("Reminder (local YYYY-MM-DD HH:MM)");
         ui.text_edit_singleline(&mut self.edit_reminder);
         ui.add_space(8.0);
-        if ui.button("Save details").clicked() {
-            if let Err(err) = self.apply_details(id) {
-                self.status = Some(err);
-            }
+        if ui.button("Save details").clicked()
+            && let Err(err) = self.apply_details(id)
+        {
+            self.status = Some(err);
         }
         ui.separator();
         let today = Self::today();
@@ -386,15 +385,14 @@ impl ToDoCraftApp {
                 "Add to My Day"
             })
             .clicked()
+            && let Ok(value) = self.workspace.task_mut(id)
         {
-            if let Ok(value) = self.workspace.task_mut(id) {
-                value.my_day = if value.my_day == Some(today) {
-                    None
-                } else {
-                    Some(today)
-                };
-                self.persist();
-            }
+            value.my_day = if value.my_day == Some(today) {
+                None
+            } else {
+                Some(today)
+            };
+            self.persist();
         }
 
         let mut repeat = task.repeat;
@@ -405,11 +403,11 @@ impl ToDoCraftApp {
                     ui.selectable_value(&mut repeat, choice, choice.label());
                 }
             });
-        if repeat != task.repeat {
-            if let Ok(value) = self.workspace.task_mut(id) {
-                value.repeat = repeat;
-                self.persist();
-            }
+        if repeat != task.repeat
+            && let Ok(value) = self.workspace.task_mut(id)
+        {
+            value.repeat = repeat;
+            self.persist();
         }
 
         ui.label("Move to list");
@@ -440,14 +438,12 @@ impl ToDoCraftApp {
         ui.heading("Steps");
         for step in task.steps {
             ui.horizontal(|ui| {
-                if ui.button(if step.completed { "☑" } else { "☐" }).clicked() {
-                    if let Ok(item) = self.workspace.task_mut(id) {
-                        if let Some(value) = item.steps.iter_mut().find(|value| value.id == step.id)
-                        {
-                            value.completed = !value.completed;
-                            self.persist();
-                        }
-                    }
+                if ui.button(if step.completed { "☑" } else { "☐" }).clicked()
+                    && let Ok(item) = self.workspace.task_mut(id)
+                    && let Some(value) = item.steps.iter_mut().find(|value| value.id == step.id)
+                {
+                    value.completed = !value.completed;
+                    self.persist();
                 }
                 let text = if step.completed {
                     RichText::new(step.title).strikethrough()
@@ -455,11 +451,11 @@ impl ToDoCraftApp {
                     RichText::new(step.title)
                 };
                 ui.label(text);
-                if ui.small_button("✕").on_hover_text("Delete step").clicked() {
-                    if let Ok(item) = self.workspace.task_mut(id) {
-                        item.steps.retain(|value| value.id != step.id);
-                        self.persist();
-                    }
+                if ui.small_button("✕").on_hover_text("Delete step").clicked()
+                    && let Ok(item) = self.workspace.task_mut(id)
+                {
+                    item.steps.retain(|value| value.id != step.id);
+                    self.persist();
                 }
             });
         }
@@ -469,15 +465,15 @@ impl ToDoCraftApp {
                     .hint_text("New step")
                     .desired_width(ui.available_width() - 45.0),
             );
-            if ui.button("+").on_hover_text("Add step").clicked() {
-                if let Ok(item) = self.workspace.task_mut(id) {
-                    match item.add_step(&self.new_step) {
-                        Ok(_) => {
-                            self.new_step.clear();
-                            self.persist();
-                        }
-                        Err(err) => self.status = Some(err.to_string()),
+            if ui.button("+").on_hover_text("Add step").clicked()
+                && let Ok(item) = self.workspace.task_mut(id)
+            {
+                match item.add_step(&self.new_step) {
+                    Ok(_) => {
+                        self.new_step.clear();
+                        self.persist();
                     }
+                    Err(err) => self.status = Some(err.to_string()),
                 }
             }
         });
