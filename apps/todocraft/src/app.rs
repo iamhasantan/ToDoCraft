@@ -1,6 +1,6 @@
 use chrono::{DateTime, Local, LocalResult, NaiveDate, NaiveDateTime, TimeZone, Utc};
 use eframe::egui::{self, RichText};
-use todocraft_core::{Repeat, Task, View, Workspace};
+use todocraft_core::{Repeat, View, Workspace};
 use todocraft_storage::Store;
 use uuid::Uuid;
 
@@ -508,9 +508,9 @@ impl ToDoCraftApp {
 }
 
 impl eframe::App for ToDoCraftApp {
-    fn update(&mut self, context: &egui::Context, _frame: &mut eframe::Frame) {
+    fn ui(&mut self, root: &mut egui::Ui, _frame: &mut eframe::Frame) {
         if self.store.is_none() {
-            egui::CentralPanel::default().show(context, |ui| {
+            egui::CentralPanel::default().show(root, |ui| {
                 ui.heading("ToDoCraft needs attention");
                 if let Some(message) = &self.status {
                     ui.colored_label(self.tokens.important, message);
@@ -519,7 +519,7 @@ impl eframe::App for ToDoCraftApp {
             });
             return;
         }
-        egui::TopBottomPanel::top("toolbar").show(context, |ui| {
+        egui::Panel::top("toolbar").show(root, |ui| {
             ui.horizontal(|ui| {
                 ui.label(RichText::new("✓").color(self.tokens.accent).heading());
                 ui.label(RichText::new("ToDoCraft").strong());
@@ -531,30 +531,30 @@ impl eframe::App for ToDoCraftApp {
                 );
             });
         });
-        egui::SidePanel::left("navigation")
-            .default_width(215.0)
-            .min_width(175.0)
+        egui::Panel::left("navigation")
+            .default_size(215.0)
+            .min_size(175.0)
             .frame(
                 egui::Frame::default()
                     .fill(self.tokens.sidebar_surface)
                     .inner_margin(egui::Margin::same(14)),
             )
-            .show(context, |ui| self.side_navigation(ui));
+            .show(root, |ui| self.side_navigation(ui));
         if self.selected.is_some() {
-            egui::SidePanel::right("inspector")
-                .default_width(300.0)
-                .min_width(250.0)
+            egui::Panel::right("inspector")
+                .default_size(300.0)
+                .min_size(250.0)
                 .resizable(true)
-                .show(context, |ui| {
+                .show(root, |ui| {
                     egui::ScrollArea::vertical().show(ui, |ui| self.inspector(ui));
                 });
         }
-        egui::TopBottomPanel::bottom("composer").show(context, |ui| {
+        egui::Panel::bottom("composer").show(root, |ui| {
             ui.add_space(6.0);
             self.add_task_bar(ui);
             ui.add_space(6.0);
         });
-        egui::CentralPanel::default().show(context, |ui| {
+        egui::CentralPanel::default().show(root, |ui| {
             if let Some(message) = &self.status {
                 ui.colored_label(self.tokens.important, message);
                 ui.separator();
