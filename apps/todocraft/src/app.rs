@@ -33,7 +33,9 @@ impl ToDoCraftApp {
                 Err(err) => (
                     None,
                     Workspace::default(),
-                    Some(format!("Unable to read ToDoCraft data: {err}. Original data has not been changed.")),
+                    Some(format!(
+                        "Unable to read ToDoCraft data: {err}. Original data has not been changed."
+                    )),
                 ),
             },
             Err(err) => (
@@ -71,7 +73,9 @@ impl ToDoCraftApp {
             match store.save(&self.workspace) {
                 Ok(()) => self.status = None,
                 Err(err) => {
-                    self.status = Some(format!("Changes could not be saved: {err}. Keep this window open."));
+                    self.status = Some(format!(
+                        "Changes could not be saved: {err}. Keep this window open."
+                    ));
                 }
             }
         }
@@ -82,9 +86,18 @@ impl ToDoCraftApp {
             self.selected = Some(id);
             self.edit_title = task.title.clone();
             self.edit_note = task.note.clone();
-            self.edit_due = task.due_date.map(|date| date.to_string()).unwrap_or_default();
-            self.edit_reminder = task.reminder_at
-                .map(|timestamp| timestamp.with_timezone(&Local).format("%Y-%m-%d %H:%M").to_string())
+            self.edit_due = task
+                .due_date
+                .map(|date| date.to_string())
+                .unwrap_or_default();
+            self.edit_reminder = task
+                .reminder_at
+                .map(|timestamp| {
+                    timestamp
+                        .with_timezone(&Local)
+                        .format("%Y-%m-%d %H:%M")
+                        .to_string()
+                })
                 .unwrap_or_default();
             self.new_step.clear();
             self.confirm_delete = false;
@@ -98,8 +111,13 @@ impl ToDoCraftApp {
             View::Planned => "Planned".to_owned(),
             View::All => "All tasks".to_owned(),
             View::Completed => "Completed".to_owned(),
-            View::List(id) => self.workspace.lists.iter().find(|list| list.id == *id)
-                .map(|list| list.name.clone()).unwrap_or_else(|| "Tasks".to_owned()),
+            View::List(id) => self
+                .workspace
+                .lists
+                .iter()
+                .find(|list| list.id == *id)
+                .map(|list| list.name.clone())
+                .unwrap_or_else(|| "Tasks".to_owned()),
         }
     }
 
@@ -139,8 +157,10 @@ impl ToDoCraftApp {
         let date = parse_date(&self.edit_due)?;
         let reminder = parse_reminder(&self.edit_reminder)?;
         let task = self.workspace.task_mut(id).map_err(|err| err.to_string())?;
-        task.rename(&self.edit_title).map_err(|err| err.to_string())?;
-        task.set_note(&self.edit_note).map_err(|err| err.to_string())?;
+        task.rename(&self.edit_title)
+            .map_err(|err| err.to_string())?;
+        task.set_note(&self.edit_note)
+            .map_err(|err| err.to_string())?;
         task.due_date = date;
         task.reminder_at = reminder;
         self.persist();
@@ -149,7 +169,11 @@ impl ToDoCraftApp {
 
     fn side_navigation(&mut self, ui: &mut egui::Ui) {
         ui.heading(RichText::new("ToDoCraft").color(self.tokens.accent));
-        ui.label(RichText::new("Your day, carefully crafted").color(self.tokens.muted_text).small());
+        ui.label(
+            RichText::new("Your day, carefully crafted")
+                .color(self.tokens.muted_text)
+                .small(),
+        );
         ui.add_space(18.0);
 
         for (view, icon, label) in [
@@ -159,17 +183,32 @@ impl ToDoCraftApp {
             (View::All, "≡", "All"),
             (View::Completed, "✓", "Completed"),
         ] {
-            if ui.selectable_label(self.view == view, format!("{icon}  {label}")).clicked() {
+            if ui
+                .selectable_label(self.view == view, format!("{icon}  {label}"))
+                .clicked()
+            {
                 self.view = view;
             }
         }
         ui.add_space(12.0);
         ui.separator();
-        ui.label(RichText::new("MY LISTS").small().color(self.tokens.muted_text));
+        ui.label(
+            RichText::new("MY LISTS")
+                .small()
+                .color(self.tokens.muted_text),
+        );
         ui.add_space(8.0);
-        let lists: Vec<_> = self.workspace.lists.iter().map(|l| (l.id, l.name.clone())).collect();
+        let lists: Vec<_> = self
+            .workspace
+            .lists
+            .iter()
+            .map(|l| (l.id, l.name.clone()))
+            .collect();
         for (id, name) in lists {
-            if ui.selectable_label(self.view == View::List(id), format!("☷  {name}")).clicked() {
+            if ui
+                .selectable_label(self.view == View::List(id), format!("☷  {name}"))
+                .clicked()
+            {
                 self.view = View::List(id);
             }
         }
@@ -199,53 +238,86 @@ impl ToDoCraftApp {
         ui.add_space(12.0);
         ui.heading(self.view_name());
         if matches!(self.view, View::MyDay) {
-            ui.label(RichText::new(Self::today().format("%A, %d %B %Y").to_string())
-                .color(self.tokens.muted_text));
+            ui.label(
+                RichText::new(Self::today().format("%A, %d %B %Y").to_string())
+                    .color(self.tokens.muted_text),
+            );
         }
         ui.add_space(14.0);
-        let count = self.workspace.visible_tasks(&self.view, Self::today(), &self.search).len();
-        ui.label(RichText::new(format!("{count} task(s)")).small().color(self.tokens.muted_text));
+        let count = self
+            .workspace
+            .visible_tasks(&self.view, Self::today(), &self.search)
+            .len();
+        ui.label(
+            RichText::new(format!("{count} task(s)"))
+                .small()
+                .color(self.tokens.muted_text),
+        );
         ui.separator();
-        let rows: Vec<_> = self.workspace.visible_tasks(&self.view, Self::today(), &self.search)
+        let rows: Vec<_> = self
+            .workspace
+            .visible_tasks(&self.view, Self::today(), &self.search)
             .into_iter()
-            .map(|task| (task.id, task.title.clone(), task.is_completed(), task.important, task.due_date))
+            .map(|task| {
+                (
+                    task.id,
+                    task.title.clone(),
+                    task.is_completed(),
+                    task.important,
+                    task.due_date,
+                )
+            })
             .collect();
 
-        egui::ScrollArea::vertical().auto_shrink([false, false]).show(ui, |ui| {
-            for (id, title, completed, important, due) in rows {
-                ui.horizontal(|ui| {
-                    if ui.button(if completed { "●" } else { "○" })
-                        .on_hover_text("Toggle completed").clicked()
-                    {
-                        match self.workspace.toggle_completed(id, Self::today()) {
-                            Ok(()) => self.persist(),
-                            Err(err) => self.status = Some(err.to_string()),
+        egui::ScrollArea::vertical()
+            .auto_shrink([false, false])
+            .show(ui, |ui| {
+                for (id, title, completed, important, due) in rows {
+                    ui.horizontal(|ui| {
+                        if ui
+                            .button(if completed { "●" } else { "○" })
+                            .on_hover_text("Toggle completed")
+                            .clicked()
+                        {
+                            match self.workspace.toggle_completed(id, Self::today()) {
+                                Ok(()) => self.persist(),
+                                Err(err) => self.status = Some(err.to_string()),
+                            }
                         }
-                    }
-                    let text = if completed {
-                        RichText::new(title).strikethrough().color(self.tokens.muted_text)
-                    } else {
-                        RichText::new(title)
-                    };
-                    if ui.selectable_label(self.selected == Some(id), text).clicked() {
-                        self.select_task(id);
-                    }
-                    if let Some(date) = due {
-                        ui.label(RichText::new(date.format("%d %b").to_string())
-                            .small().color(self.tokens.muted_text));
-                    }
-                    if ui.button(if important { "★" } else { "☆" })
-                        .on_hover_text("Toggle important").clicked()
-                    {
-                        if let Ok(task) = self.workspace.task_mut(id) {
-                            task.important = !task.important;
-                            self.persist();
+                        let text = if completed {
+                            RichText::new(title)
+                                .strikethrough()
+                                .color(self.tokens.muted_text)
+                        } else {
+                            RichText::new(title)
+                        };
+                        if ui
+                            .selectable_label(self.selected == Some(id), text)
+                            .clicked()
+                        {
+                            self.select_task(id);
                         }
-                    }
-                });
-                ui.separator();
-            }
-        });
+                        if let Some(date) = due {
+                            ui.label(
+                                RichText::new(date.format("%d %b").to_string())
+                                    .small()
+                                    .color(self.tokens.muted_text),
+                            );
+                        }
+                        if ui
+                            .button(if important { "★" } else { "☆" })
+                            .on_hover_text("Toggle important")
+                            .clicked()
+                        {
+                            if let Ok(task) = self.workspace.task_mut(id) {
+                                task.important = !task.important;
+                                self.persist();
+                            }
+                        }
+                    });
+                    ui.separator();
+                }
+            });
     }
 
     fn add_task_bar(&mut self, ui: &mut egui::Ui) {
@@ -268,7 +340,13 @@ impl ToDoCraftApp {
             ui.label("Choose a task to see its details.");
             return;
         };
-        let Some(task) = self.workspace.tasks.iter().find(|task| task.id == id).cloned() else {
+        let Some(task) = self
+            .workspace
+            .tasks
+            .iter()
+            .find(|task| task.id == id)
+            .cloned()
+        else {
             self.selected = None;
             return;
         };
@@ -283,9 +361,11 @@ impl ToDoCraftApp {
         ui.text_edit_singleline(&mut self.edit_title);
         ui.add_space(8.0);
         ui.label("Notes");
-        ui.add(egui::TextEdit::multiline(&mut self.edit_note)
-            .hint_text("Add a note")
-            .desired_rows(4));
+        ui.add(
+            egui::TextEdit::multiline(&mut self.edit_note)
+                .hint_text("Add a note")
+                .desired_rows(4),
+        );
         ui.add_space(8.0);
         ui.label("Due date (YYYY-MM-DD)");
         ui.text_edit_singleline(&mut self.edit_due);
@@ -299,9 +379,20 @@ impl ToDoCraftApp {
         }
         ui.separator();
         let today = Self::today();
-        if ui.button(if task.my_day == Some(today) { "Remove from My Day" } else { "Add to My Day" }).clicked() {
+        if ui
+            .button(if task.my_day == Some(today) {
+                "Remove from My Day"
+            } else {
+                "Add to My Day"
+            })
+            .clicked()
+        {
             if let Ok(value) = self.workspace.task_mut(id) {
-                value.my_day = if value.my_day == Some(today) { None } else { Some(today) };
+                value.my_day = if value.my_day == Some(today) {
+                    None
+                } else {
+                    Some(today)
+                };
                 self.persist();
             }
         }
@@ -323,8 +414,14 @@ impl ToDoCraftApp {
 
         ui.label("Move to list");
         let mut list_id = task.list_id;
-        let list_name = self.workspace.lists.iter().find(|list| list.id == list_id)
-            .map(|list| list.name.as_str()).unwrap_or("Tasks").to_owned();
+        let list_name = self
+            .workspace
+            .lists
+            .iter()
+            .find(|list| list.id == list_id)
+            .map(|list| list.name.as_str())
+            .unwrap_or("Tasks")
+            .to_owned();
         egui::ComboBox::from_id_salt(("move", id))
             .selected_text(list_name)
             .show_ui(ui, |ui| {
@@ -345,7 +442,8 @@ impl ToDoCraftApp {
             ui.horizontal(|ui| {
                 if ui.button(if step.completed { "☑" } else { "☐" }).clicked() {
                     if let Ok(item) = self.workspace.task_mut(id) {
-                        if let Some(value) = item.steps.iter_mut().find(|value| value.id == step.id) {
+                        if let Some(value) = item.steps.iter_mut().find(|value| value.id == step.id)
+                        {
                             value.completed = !value.completed;
                             self.persist();
                         }
@@ -366,9 +464,11 @@ impl ToDoCraftApp {
             });
         }
         ui.horizontal(|ui| {
-            ui.add(egui::TextEdit::singleline(&mut self.new_step)
-                .hint_text("New step")
-                .desired_width(ui.available_width() - 45.0));
+            ui.add(
+                egui::TextEdit::singleline(&mut self.new_step)
+                    .hint_text("New step")
+                    .desired_width(ui.available_width() - 45.0),
+            );
             if ui.button("+").on_hover_text("Add step").clicked() {
                 if let Ok(item) = self.workspace.task_mut(id) {
                     match item.add_step(&self.new_step) {
@@ -424,16 +524,21 @@ impl eframe::App for ToDoCraftApp {
                 ui.label(RichText::new("✓").color(self.tokens.accent).heading());
                 ui.label(RichText::new("ToDoCraft").strong());
                 ui.separator();
-                ui.add(egui::TextEdit::singleline(&mut self.search)
-                    .hint_text("Search titles and notes")
-                    .desired_width(320.0));
+                ui.add(
+                    egui::TextEdit::singleline(&mut self.search)
+                        .hint_text("Search titles and notes")
+                        .desired_width(320.0),
+                );
             });
         });
         egui::SidePanel::left("navigation")
             .default_width(215.0)
             .min_width(175.0)
-            .frame(egui::Frame::default().fill(self.tokens.sidebar_surface)
-                .inner_margin(egui::Margin::same(14)))
+            .frame(
+                egui::Frame::default()
+                    .fill(self.tokens.sidebar_surface)
+                    .inner_margin(egui::Margin::same(14)),
+            )
             .show(context, |ui| self.side_navigation(ui));
         if self.selected.is_some() {
             egui::SidePanel::right("inspector")
@@ -456,8 +561,11 @@ impl eframe::App for ToDoCraftApp {
             }
             self.central_view(ui);
             // A themed border keeps the empty task space visually anchored.
-            ui.painter().hline(ui.min_rect().x_range(), ui.min_rect().bottom(), 
-                egui::Stroke::new(0.5, self.tokens.border));
+            ui.painter().hline(
+                ui.min_rect().x_range(),
+                ui.min_rect().bottom(),
+                egui::Stroke::new(0.5, self.tokens.border),
+            );
         });
     }
 }
